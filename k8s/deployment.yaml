@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: siebel-service
+  name: real-time-pipeline
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: siebel-service
+      app: real-time-pipeline
   template:
     metadata:
       labels:
-        app: siebel-service
+        app: real-time-pipeline
     spec:
       containers:
-      - name: siebel-service
-        image: siebel-service:latest
+      - name: real-time-pipeline
+        image: real-time-pipeline:latest
         ports:
         - containerPort: 8080
         env:
@@ -23,4 +23,3 @@ spec:
             secretKeyRef:
               name: my-secret
               key: database-url
-
