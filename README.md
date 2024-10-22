@@ -45,7 +45,7 @@ az aks nodepool update --resource-group fiapResourceGroup --cluster-name fiapAKS
 
 - Aplicar secret key
 ```sh
-kubectl apply -f secret.yaml
+kubectl create secret generic azure-sql-secret --from-literal=database-url="mssql+pyodbc://<username>:<password>@<server>.database.windows.net:1433/<database>?driver=ODBC+Driver+17+for+SQL+Server"
 ```
 
 - Deploy
@@ -53,3 +53,36 @@ kubectl apply -f secret.yaml
 kubectl apply -f k8s/deployment.yaml
 ```
 
+- Configurar Spark Streaming
+```py
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import from_json, col
+from pyspark.sql.types import StructType, StructField, StringType, FloatType
+
+spark = SparkSession.builder \
+    .appName("KafkaSparkStreaming") \
+    .getOrCreate()
+
+schema = StructType([
+    StructField("key", StringType(), True),
+    StructField("value", FloatType(), True)
+])
+
+df = spark \
+    .readStream \
+    .format("kafka") \
+    .option("kafka.bootstrap.servers", "kafka:9092") \
+    .option("subscribe", "data-topic") \
+    .load()
+
+df = df.selectExpr("CAST(value AS STRING) as json") \
+    .select(from_json(col("json"), schema).alias("data")) \
+    .select("data.*")
+
+query = df.writeStream \
+    .outputMode("append") \
+    .format("console") \
+    .start()
+
+query.awaitTermination()
+```
